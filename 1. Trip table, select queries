@@ -1,0 +1,80 @@
+#Output from the trip table information about the trips of those employees whose last name ends with the letter "a", 
+sorted in descending order by the date of the last day of the trip. Include the columns name, city, per_diem, date_first, date_last in the result.
+
+SELECT name, city, per_diem, date_first, date_last
+FROM trip
+WHERE name LIKE '%а %'
+ORDER BY date_last DESC;
+
+#Print in alphabetical order the last names and initials of those employees who were on a business trip in Moscow.
+SELECT name 
+FROM trip 
+WHERE city = 'Москва'
+GROUP BY name
+ORDER BY name;
+
+#For each city, calculate how many times employees have been to it. Display information sorted alphabetically by city name. Name the calculated column Quantity.
+SELECT city, COUNT(city) AS Количество
+FROM trip
+GROUP BY city
+ORDER BY city;
+
+#Display the two cities in which employees were most often on business trips. Name the calculated column Quantity.
+
+SELECT city, COUNT(city) AS Количество
+FROM trip
+GROUP BY city
+ORDER BY Количество DESC
+LIMIT 2;
+
+#Display information about business trips to all cities except Moscow and St. Petersburg (surnames and initials of employees, city , 
+duration of the business trip in days, while the first and last days refer to the business trip period). 
+Name the last column Duration. Display the information sorted in descending order by trip duration, and then in descending order by city names (in reverse alphabetical order).
+
+SELECT name, city, DATEDIFF(date_last, date_first)+ 1 AS Длительность
+FROM trip
+WHERE city NOT IN ('Москва', 'Санкт-Петербург')
+ORDER BY Длительность DESC, city DESC;
+
+#Display information about the trips of the employee(s) that were the shortest in time. Include the columns name, city, date_first, date_last in the result.
+SELECT name, city, date_first, date_last
+FROM trip
+WHERE DATEDIFF(date_last, date_first) = (SELECT MIN(DATEDIFF(date_last, date_first)) FROM trip);
+
+#Display information about business trips, the beginning and end of which belong to the same month (any year can be). Include the columns name, city, date_first, date_last in the result. 
+Sort the rows first in alphabetical order by the name of the city, and then by the last name of the employee.
+
+SELECT name, city, date_first, date_last
+FROM trip
+WHERE MONTH(date_first) = MONTH(date_last)
+ORDER BY city, name;
+
+
+#Display the name of the month and the number of business trips for each month. We consider that a business trip belongs to a certain month if it started in this month.
+Display the information first sorted in descending order of quantity, and then in alphabetical order by the name of the month. The column names are Month and Count.
+
+SELECT MONTHNAME(date_first) AS Месяц, COUNT(MONTHNAME(date_first)) AS Количество
+FROM trip
+GROUP BY MONTHNAME(date_first)
+ORDER BY 2 DESC, 1;
+
+
+#Display the sum of the daily allowance (the product of the number of business trip days and the size of the daily allowance) for business trips whose first day fell in February or March 2020. The per diem value for each business trip is listed in the per_diem column. Display the last name and initials of the employee, city, first day of the trip and the amount of per diems. 
+Name the last column Amount. Sort the information first in alphabetical order by the names of employees, and then in descending order by the amount of the daily allowance.
+
+SELECT name, city, date_first, (DATEDIFF(date_last, date_first) + 1)* per_diem AS Сумма
+FROM trip
+WHERE date_first LIKE '2020%' AND (MONTHNAME(date_first) = 'March' OR MONTHNAME(date_first) = 'February')
+ORDER BY 1, 4 DESC;
+
+
+#Output the last name with initials and the total amount of per diems received for all business trips for those employees who have been on business trips more than 3 times, sorted in descending order of per diem amounts. Name the last column Amount.
+
+SELECT name, SUM((DATEDIFF(date_last, date_first) + 1)* per_diem) AS Сумма
+FROM trip
+GROUP BY name
+HAVING COUNT(name) > 3
+ORDER BY 1;
+
+
+
