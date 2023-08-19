@@ -1,0 +1,72 @@
+#Create fine table
+
+CREATE TABLE fine(
+    fine_id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(30),
+    number_plate VARCHAR(6),
+    violation VARCHAR(50),
+    sum_fine DECIMAL(8, 2),
+    date_violation DATE,
+    date_payment DATE);
+
+#The first 5 rows have already been entered into the fine table. Add records to the table with key values 6, 7, 8.
+INSERT INTO fine (name, number_plate, violation, date_violation)
+VALUES
+('Баранов П.Е.', 'Р523ВТ', 'Превышение скорости(от 40 до 60)', '2020-02-14'),
+('Абрамова К.А.', 'О111АВ', 'Проезд на запрещающий сигнал', '2020-02-23'),        
+('Яковлев Г.Р.', 'Т330ТТ', 'Проезд на запрещающий сигнал', '2020-03-03');        
+
+
+#Enter in the fine table the amounts of fines that the driver must pay, in accordance with the data from the traffic_violation table. 
+In this case, the sums should be entered only in the empty fields of the sum_fine column.
+
+UPDATE fine f, traffic_violation tv
+SET f.sum_fine = tv.sum_fine
+WHERE f.violation = tv.violation AND f.sum_fine IS NULL;
+
+
+#Output last name, car number and violation only for those drivers who violated the same rule two or more times in the same car. At the same time, take into account all violations, 
+regardless of whether they are paid or not. Sort the information alphabetically, first by driver's last name, then by car number, and finally by violation.
+SELECT name, number_plate, violation
+FROM fine 
+GROUP BY name, number_plate, violation
+HAVING COUNT(violation) >1;
+
+#In the fine table, double the amount of unpaid fines for the records selected in the previous step.
+
+CREATE TABLE query_in(
+SELECT name,number_plate,violation
+    FROM fine 
+    GROUP BY name, number_plate, violation
+    HAVING COUNT(violation) >1);
+    
+UPDATE fine, query_in
+SET sum_fine = sum_fine * 2
+WHERE fine.name = query_in.name AND date_payment IS NULL;
+
+
+#enter the date of payment of the corresponding fine from the payment table into the fine table;
+reduce the accrued fine in the fine table by half (only for those fines, information about which is entered in the payment table), 
+if the payment was made no later than 20 days from the date of the violation.
+
+UPDATE payment AS p, fine AS f
+SET f.date_payment = p.date_payment, 
+    f.sum_fine = IF(DATEDIFF(p.date_payment, p.date_violation) <= 20, f.sum_fine * 0.5, f.sum_fine)
+WHERE f.name = p.name AND f.number_plate = p.number_plate AND f.violation = p.violation AND f.date_payment IS NULL;
+
+
+
+#Create a new back_payment table, where to enter information about unpaid fines (Last and initials of the driver, car number, violation, 
+fine amount and date of violation) from the fine table.
+CREATE TABLE back_payment(
+    SELECT name, number_plate, violation, sum_fine, date_violation
+    FROM fine
+    WHERE date_payment IS NULL);
+    
+SELECT * FROM back_payment;
+
+#Remove from the fine table information about violations committed before February 1, 2020.
+DELETE FROM fine
+WHERE date_violation < '2020-02-01';
+
+
