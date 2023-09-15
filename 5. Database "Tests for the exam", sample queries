@@ -1,0 +1,110 @@
+'''Display students who took the “Fundamentals of Databases” course, indicate the date of the attempt and the result. Display information in descending order of test results.'''
+
+SELECT name_student, date_attempt, result
+FROM student 
+    INNER JOIN attempt ON student.student_id = attempt.student_id
+    INNER JOIN subject ON subject.subject_id = attempt.subject_id
+WHERE name_subject = 'Основы баз данных'
+ORDER BY 3 DESC
+
+'''Display how many attempts students made in each discipline, as well as the average result of attempts, rounded to 2 decimal places. 
+The result of an attempt is understood as the percentage of correct answers to test questions, which is listed in the result column. 
+The result includes the name of the discipline, as well as the calculated columns Number and Average. Display information in descending order of average results.'''
+
+SELECT name_subject, COUNT(attempt.subject_id) AS Количество, ROUND(AVG(attempt.result), 2) AS Среднее
+FROM student 
+    LEFT JOIN attempt ON student.student_id = attempt.student_id
+    RIGHT JOIN subject ON subject.subject_id = attempt.subject_id
+GROUP BY 1
+ORDER BY 3 DESC
+
+
+'''Display the students (various students) who have the maximum attempt results. Sort the information alphabetically by student's last name.'''
+
+SELECT name_student, result
+FROM student 
+    INNER JOIN attempt ON student.student_id = attempt.student_id
+    INNER JOIN subject ON subject.subject_id = attempt.subject_id
+WHERE result IN (SELECT MAX(result)
+       FROM attempt
+       GROUP BY subject_id)
+ORDER BY 1
+
+
+'''If a student made several attempts in the same discipline, then print the difference in days between the first and last attempt. 
+The result includes the student's first and last name, the name of the discipline, 
+and the calculated column Interval. Display information in ascending order of difference. Students who have made one attempt in the discipline are not taken into account.'''
+
+
+SELECT name_student, name_subject, DATEDIFF(MAX(date_attempt), MIN(date_attempt)) AS Интервал
+FROM student 
+    INNER JOIN attempt ON student.student_id = attempt.student_id
+    INNER JOIN subject ON subject.subject_id = attempt.subject_id
+GROUP BY 1, 2
+HAVING Интервал <> 0
+ORDER BY 3
+
+
+'''Students can be tested in one or more disciplines (not necessarily all). Display the discipline and the number of unique students (name the column Number) who were tested in it. 
+Sort the information first by descending quantity, and then by discipline name. As a result, include disciplines for which students have not yet been tested; 
+in this case, indicate the number of students as 0.'''
+
+SELECT name_subject, COUNT(DISTINCT attempt.student_id) AS Количество
+FROM student 
+    INNER JOIN attempt ON student.student_id = attempt.student_id
+    RIGHT JOIN subject ON subject.subject_id = attempt.subject_id
+GROUP BY name_subject
+ORDER BY 2 DESC, 1
+
+
+
+'''Randomly select 3 questions in the “Database Fundamentals” discipline. As a result, include the question_id and name_question columns.'''
+
+SELECT question_id, name_question
+FROM question INNER JOIN subject ON subject.subject_id = question.subject_id
+WHERE subject.name_subject = 'Основы баз данных'
+ORDER BY RAND()
+LIMIT 3
+
+
+'''Display the questions that were included in the test for Ivan Semenov in the discipline “SQL Fundamentals” 2020-05-17 (the attempt_id value for this attempt is 7). 
+Indicate what answer the student gave and whether it is correct or not (output True or False). The result includes the question, answer, and a calculated Result column.'''
+
+SELECT question.name_question, answer.name_answer, IF(answer.is_correct = 1, 'Верно', 'Неверно') AS Результат
+FROM question 
+    INNER JOIN testing ON testing.question_id = question.question_id
+    INNER JOIN answer ON answer.answer_id = testing.answer_id
+WHERE testing.attempt_id = 7
+
+
+'''Calculate test results. The result of the attempt is calculated as the number of correct answers divided by 3 (the number of questions in each attempt) and multiplied by 100. 
+Round the result to two decimal places. Display the student's last name, subject name, date and result. The last column is called Result. 
+Sort the information first by student's last name, then in descending order by date of attempt.'''
+
+SELECT name_student, name_subject, date_attempt, ROUND(SUM(is_correct/3*100), 2) AS Результат
+
+FROM answer
+        JOIN testing USING(answer_id)
+        JOIN attempt USING(attempt_id)
+        JOIN subject USING(subject_id)     
+        JOIN student USING(student_id)
+GROUP BY name_student, name_subject, date_attempt
+ORDER BY 1, 3 DESC
+
+
+'''For each question, display the percentage of successful solutions, that is, the ratio of the number of correct answers to the total number of answers, round the value to 2 decimal places. 
+Also display the name of the subject to which the question relates and the total number of answers to this question. The result includes the name of the discipline, questions about it 
+(the column is called Question), as well as two calculated columns Total_answers and Success. Sort the information first by the name of the discipline, then in descending order of success, 
+and then by the text of the question in alphabetical order.
+
+Since question texts can be long, trim them to 30 characters and add an ellipsis "...".'''
+
+SELECT name_subject, CONCAT(LEFT(name_question, 30), '...') AS Вопрос, COUNT(testing.question_id) AS Всего_ответов, ROUND(sum(answer.is_correct)/COUNT(answer.answer_id)*100, 2) AS Успешность
+FROM subject
+        JOIN question  USING(subject_id)
+        JOIN testing USING(question_id)
+        JOIN answer USING(answer_id)
+GROUP BY 1, 2
+ORDER BY 1, 4 DESC, 2
+
+
