@@ -1,0 +1,85 @@
+#Include a new person in the table with clients. His name is Popov Ilya, his email is popov@test, he lives in Moscow.
+
+INSERT INTO client(name_client, city_id, email)
+SELECT 'Попов Илья', city_id, 'popov@test'
+FROM city
+WHERE city_id  = 1;
+
+#Create a new order for Ilya Popov. His comment for the order: “Contact me regarding delivery.”
+INSERT INTO buy(buy_description, client_id)
+SELECT 'Связаться со мной по вопросу доставки', client_id
+FROM client
+WHERE name_client  = 'Попов Илья';
+
+
+#Add an order with number 5 to the buy_book table. This order should contain Pasternak’s book “Lyrics” in two copies and Bulgakov’s book “The White Guard” in one copy.
+
+INSERT INTO buy_book(buy_id, book_id, amount)
+SELECT buy_id, book_id, 2
+FROM buy, book
+WHERE buy_id  = 5 AND title = 'Лирика';
+INSERT INTO buy_book(buy_id, book_id, amount)
+SELECT buy_id, book_id, 1
+FROM buy, book
+WHERE buy_id  = 5 AND title = 'Белая гвардия';
+
+
+#The quantity of those books in the warehouse that were included in the order with number 5 is reduced by the quantity indicated in the order with number 5.
+
+UPDATE book, buy_book
+SET book.amount = book.amount - buy_book.amount
+WHERE buy_id  = 5 AND book.book_id = buy_book.book_id;
+
+
+#Create an invoice (table buy_pay) to pay for order number 5, which includes the name of the books, their author,
+price, number of books ordered and cost. The last column is called Cost. Enter information into the table sorted by book titles.
+
+CREATE table buy_pay AS
+SELECT book.title, author.name_author, book.price, buy_book.amount, book.price * buy_book.amount AS Стоимость
+FROM book, buy_book, author
+WHERE book.book_id = buy_book.book_id AND book.author_id = author.author_id AND buy_book.buy_id = 5
+ORDER BY book.title;
+SELECT * FROM buy_pay
+
+#Create a general invoice (table buy_pay) to pay for order number 5. 
+Where to include the order number, the number of books in the order (column name Quantity) and its total cost (column name Total). To solve, use ONE query.
+
+CREATE table buy_pay AS
+SELECT buy_book.buy_id, SUM(buy_book.amount) AS Количество, SUM(book.price*(buy_book.amount)) AS Итого
+FROM buy_book, book
+WHERE buy_book.buy_id = 5 AND book.book_id = buy_book.book_id;
+SELECT * FROM buy_pay
+
+#In the buy_step table for order number 5, include all the stages from the step table that this order must go through. 
+Enter Null in the date_step_beg and date_step_end columns of all records.
+
+
+INSERT INTO buy_step(buy_id, step_id, date_step_beg, date_step_end)
+SELECT 5, step.step_id, NULL, NULL
+FROM step
+
+#In the buy_step table, enter the date 04/12/2020 of issuing an invoice for payment of order number 5.
+
+It would be more correct to enter not a specific date, but the current date. This can be done using the Now() function. 
+But at the same time, different dates will be inserted on different days, and the task cannot be checked, so we will insert the date 04/12/2020.
+
+UPDATE buy_step
+SET date_step_beg = '2020-04-12' 
+WHERE buy_id = 5 AND step_id = 1;
+SELECT * FROM buy_step
+WHERE buy_id = 5
+
+#Complete the “Payment” stage for order number 5 by inserting the date 04/13/2020 into the date_step_end column, and start the next stage (“Packaging”) 
+by setting the same date in the date_step_beg column for this stage.
+
+Implement two queries to complete a stage and begin the next one. They must be written in a general form so that it can be applied to any stages, 
+changing only the current stage. For example, let this be the “Payment” stage.
+
+
+UPDATE buy_step
+SET date_step_end = '2020-04-13'
+WHERE buy_id = 5 AND step_id = 1;
+UPDATE buy_step
+SET date_step_beg = '2020-04-13'
+WHERE buy_id = 5 AND step_id = 2;
+
